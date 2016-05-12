@@ -39,6 +39,9 @@
 
 package com.github.shadowsocks.database
 
+import java.util.Locale
+
+import android.util.Base64
 import com.j256.ormlite.field.{DataType, DatabaseField}
 
 class Profile {
@@ -55,13 +58,13 @@ class Profile {
   var localPort: Int = 1080
 
   @DatabaseField
-  var remotePort: Int = 8338
+  var remotePort: Int = 8388
 
   @DatabaseField
   var password: String = ""
 
   @DatabaseField
-  var method: String = "rc4"
+  var method: String = "aes-256-cfb"
 
   @DatabaseField
   var route: String = "all"
@@ -92,4 +95,10 @@ class Profile {
 
   @DatabaseField
   val date: java.util.Date = new java.util.Date()
+
+  @DatabaseField
+  var userOrder: Long = _
+
+  override def toString = "ss://" + Base64.encodeToString("%s%s:%s@%s:%d".formatLocal(Locale.ENGLISH,
+    method, if (auth) "-auth" else "", password, host, remotePort).getBytes, Base64.NO_PADDING | Base64.NO_WRAP)
 }

@@ -42,7 +42,7 @@ import java.io._
 import java.net._
 import java.security.MessageDigest
 
-import android.animation.{AnimatorListenerAdapter, Animator}
+import android.animation.{Animator, AnimatorListenerAdapter}
 import android.app.ActivityManager
 import android.content.pm.{ApplicationInfo, PackageManager}
 import android.content.{Context, Intent}
@@ -51,36 +51,22 @@ import android.graphics.drawable.{BitmapDrawable, Drawable}
 import android.os.Build
 import android.provider.Settings
 import android.support.v4.content.ContextCompat
-import android.util.{DisplayMetrics, Base64, Log}
+import android.util.{Base64, DisplayMetrics, Log}
 import android.view.View.MeasureSpec
 import android.view.{Gravity, View, Window}
 import android.widget.Toast
-import com.github.shadowsocks.{ShadowsocksApplication, BuildConfig}
+import com.github.shadowsocks.{BuildConfig, ShadowsocksApplication, ShadowsocksRunnerService}
 import org.xbill.DNS._
 
 
 object Utils {
 
   val TAG: String = "Shadowsocks"
-  val ABI_PROP: String = "ro.product.cpu.abi"
-  val ABI2_PROP: String = "ro.product.cpu.abi2"
-  val ARM_ABI: String = "armeabi"
-  val ARMV7_ABI: String = "armeabi-v7a"
-  val X86_ABI: String = "x86"
-  val MIPS_ABI: String = "mips"
-  val DEFAULT_SHELL: String = "/system/bin/sh"
-  val DEFAULT_ROOT: String = "/system/bin/su"
-  val ALTERNATIVE_ROOT: String = "/system/xbin/su"
   val DEFAULT_IPTABLES: String = "/system/bin/iptables"
   val ALTERNATIVE_IPTABLES: String = "iptables"
-  val TIME_OUT: Int = -99
   var initialized: Boolean = false
   var hasRedirectSupport: Int = -1
-  var shell: String = null
-  var root_shell: String = null
   var iptables: String = null
-  var data_path: String = null
-  var rootTries = 0
 
   def isLollipopOrAbove: Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
 
@@ -154,12 +140,14 @@ object Utils {
   }
 
   // Blocked > 3 seconds
-  def toggleAirplaneMode(context: Context) {
-    if (ShadowsocksApplication.isRoot) {
-      Console.runRootCommand(Array("ndc resolver flushdefaultif", "ndc resolver flushif wlan0"))
+  def toggleAirplaneMode(context: Context) = {
+    if (Console.isRoot) {
+      Console.runRootCommand("ndc resolver flushdefaultif", "ndc resolver flushif wlan0")
+      true
     } else if (Build.VERSION.SDK_INT < 17) {
       toggleBelowApiLevel17(context)
-    }
+      true
+    } else false
   }
 
   //noinspection ScalaDeprecation
@@ -319,8 +307,7 @@ object Utils {
     var compatible: Boolean = false
     var version: Boolean = false
 
-    val command = Array(iptables + " --version", iptables + " -L -t nat -n")
-    val lines = Console.runRootCommand(command)
+    val lines = Console.runRootCommand(iptables + " --version", iptables + " -L -t nat -n")
     if (lines == null) return
 
     if (lines.contains("OUTPUT")) {
@@ -397,11 +384,8 @@ object Utils {
     if (!Console.isRoot) return
     hasRedirectSupport = 1
 
-    val sb = new StringBuilder
     val command = Utils.getIptables + " -t nat -A OUTPUT -p udp --dport 54 -j REDIRECT --to 8154"
-    val lines = Console.runRootCommand(command)
-
-    Console.runRootCommand(command.replace("-A", "-D"))
+    val lines = Console.runRootCommand(command, command.replace("-A", "-D"))
     if (lines == null) return
     if (lines.contains("No chain/target/match")) {
       hasRedirectSupport = 0
@@ -415,6 +399,19 @@ object Utils {
         initialized = true
         false
     }
+  }
+
+  def startSsService(context: Context) {
+    val isInstalled: Boolean = ShadowsocksApplication.settings.getBoolean(ShadowsocksApplication.getVersionName, false)
+    if (!isInstalled) return
+
+    val intent = new Intent(context, classOf[ShadowsocksRunnerService])
+    context.startService(intent)
+  }
+
+  def stopSsService(context: Context) {
+    val intent = new Intent(Action.CLOSE)
+    context.sendBroadcast(intent)
   }
 }
 

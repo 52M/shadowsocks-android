@@ -9,34 +9,40 @@ import com.github.shadowsocks.utils.Action
   * @author Mygod
   */
 trait ServiceBoundContext extends Context {
-  val connection = new ServiceConnection {
+  class ShadowsocksServiceConnection extends ServiceConnection {
     override def onServiceConnected(name: ComponentName, service: IBinder) {
+      service.linkToDeath(new ShadowsocksDeathRecipient(ServiceBoundContext.this), 0)
       bgService = IShadowsocksService.Stub.asInterface(service)
-      if (callback != null) try {
-        bgService.registerCallback(callback)
-      } catch {
-        case ignored: RemoteException => // Nothing
-      }
+      registerCallback
       ServiceBoundContext.this.onServiceConnected()
     }
     override def onServiceDisconnected(name: ComponentName) {
-      if (callback != null) {
-        try {
-          if (bgService != null) bgService.unregisterCallback(callback)
-        } catch {
-          case ignored: RemoteException => // Nothing
-        }
-        callback = null
-      }
+      unregisterCallback
       ServiceBoundContext.this.onServiceDisconnected()
       bgService = null
     }
+  }
+
+  protected def registerCallback = if (bgService != null && callback != null && !callbackRegistered) try {
+    bgService.registerCallback(callback)
+    callbackRegistered = true
+  } catch {
+    case ignored: RemoteException => // Nothing
+  }
+
+  protected def unregisterCallback = {
+    if (bgService != null && callback != null && callbackRegistered) try bgService.unregisterCallback(callback) catch {
+      case ignored: RemoteException =>
+    }
+    callbackRegistered = false
   }
 
   def onServiceConnected() = ()
   def onServiceDisconnected() = ()
 
   private var callback: IShadowsocksServiceCallback.Stub = _
+  private var connection: ShadowsocksServiceConnection = _
+  private var callbackRegistered: Boolean = _
 
   // Variables
   var bgService: IShadowsocksService = _
@@ -46,24 +52,23 @@ trait ServiceBoundContext extends Context {
     if (bgService == null) {
       val s =
         if (ShadowsocksApplication.isVpnEnabled) classOf[ShadowsocksVpnService] else classOf[ShadowsocksNatService]
+
       val intent = new Intent(this, s)
       intent.setAction(Action.SERVICE)
+
+      connection = new ShadowsocksServiceConnection()
       bindService(intent, connection, Context.BIND_AUTO_CREATE)
-      startService(new Intent(this, s))
+      startService(intent)
     }
   }
 
-  def deattachService() {
-    if (bgService != null) {
-      if (callback != null) {
-        try {
-          bgService.unregisterCallback(callback)
-        } catch {
-          case ignored: RemoteException => // Nothing
-        }
-      }
+  def detachService() {
+    unregisterCallback
+    callback = null
+    if (connection != null) {
       unbindService(connection)
-      bgService = null
+      connection = null
     }
+    bgService = null
   }
 }

@@ -2,16 +2,6 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
                   xmlns:app="http://schemas.android.com/apk/res/com.github.shadowsocks">
 
-    <PreferenceCategory android:title="@string/global_cat">
-
-        <Preference android:key="profiles" android:summary="@string/profile_summary" android:title="@string/profiles">
-            <intent android:action="com.github.shadowsocks.ProfileManagerActivity"/>
-        </Preference>
-
-        <Preference android:key="stat" android:title="@string/stat"/>
-
-    </PreferenceCategory>
-
     <PreferenceCategory
             android:title="@string/proxy_cat">
 
@@ -26,13 +16,13 @@
                 app:min="1"
                 app:max="65535"
                 android:key="remotePortNum"
-                app:summary="@string/remote_port_summary"
+                android:summary="@string/remote_port_summary"
                 android:title="@string/remote_port"/>
         <com.github.shadowsocks.preferences.NumberPickerPreference
                 app:min="1025"
                 app:max="65535"
                 android:key="localPortNum"
-                app:summary="@string/port_summary"
+                android:summary="@string/port_summary"
                 android:title="@string/port"/>
         <com.github.shadowsocks.preferences.PasswordEditTextPreference
                 android:inputType="textPassword"
@@ -43,7 +33,7 @@
                 android:key="encMethod"
                 app:entries="@array/enc_method_entry"
                 app:entryValues="@array/enc_method_value"
-                app:summary="%s"
+                android:summary="%s"
                 android:title="@string/enc_method"/>
         <SwitchPreference
                 android:key="isAuth"
@@ -59,7 +49,7 @@
                 android:key="route"
                 app:entries="@array/route_entry"
                 app:entryValues="@array/route_value"
-                app:summary="%s"
+                android:summary="%s"
                 android:title="@string/route_list"/>
         <SwitchPreference
                 android:key="isIpv6"
@@ -83,12 +73,14 @@
                 android:summary="@string/auto_connect_summary"
                 android:title="@string/auto_connect"/>
 
-        <com.github.shadowsocks.preferences.NatSwitchPreference android:key="isNAT"
-                                                                android:title="@string/nat"
-                                                                android:summary="@string/nat_summary"/>
+        <SwitchPreference android:key="isNAT"
+                          android:title="@string/nat"
+                          android:summary="@string/nat_summary"/>
         <Preference android:key="recovery" android:title="@string/recovery"
             android:summary="@string/recovery_summary"/>
-        <Preference android:key="flush_dnscache" android:title="@string/flush_dnscache"/>
+        <Preference android:key="flush_dnscache"
+                    android:title="@string/flush_dnscache"
+                    android:summary="@string/flush_dnscache_summary_root"/>
         <Preference android:key="about" android:title="@string/about"/>
 
     </PreferenceCategory>

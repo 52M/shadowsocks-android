@@ -61,11 +61,11 @@ class ShadowsocksRunnerService extends Service with ServiceBoundContext {
       val intent = VpnService.prepare(ShadowsocksRunnerService.this)
       if (intent == null) {
         if (bgService != null) {
-          bgService.start(ConfigUtils.load(ShadowsocksApplication.settings))
+          bgService.use(ConfigUtils.load(ShadowsocksApplication.settings))
         }
       }
     } else {
-      bgService.start(ConfigUtils.load(ShadowsocksApplication.settings))
+      bgService.use(ConfigUtils.load(ShadowsocksApplication.settings))
     }
     stopSelf()
   }
@@ -77,6 +77,6 @@ class ShadowsocksRunnerService extends Service with ServiceBoundContext {
 
   override def onDestroy() {
     super.onDestroy()
-    deattachService()
+    detachService()
   }
 }

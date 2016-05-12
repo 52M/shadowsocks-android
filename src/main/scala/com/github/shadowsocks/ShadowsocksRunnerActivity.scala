@@ -43,11 +43,10 @@ import android.app.{Activity, KeyguardManager}
 import android.content.{Intent, IntentFilter, Context, BroadcastReceiver}
 import android.net.VpnService
 import android.os.{Bundle, Handler}
-import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import com.github.shadowsocks.utils.ConfigUtils
 
-class ShadowsocksRunnerActivity extends AppCompatActivity with ServiceBoundContext {
+class ShadowsocksRunnerActivity extends Activity with ServiceBoundContext {
   val handler = new Handler()
 
   // Variables
@@ -66,7 +65,7 @@ class ShadowsocksRunnerActivity extends AppCompatActivity with ServiceBoundConte
         onActivityResult(Shadowsocks.REQUEST_CONNECT, Activity.RESULT_OK, null)
       }
     } else {
-      bgService.start(ConfigUtils.load(ShadowsocksApplication.settings))
+      bgService.use(ConfigUtils.load(ShadowsocksApplication.settings))
       finish()
     }
   }
@@ -91,7 +90,7 @@ class ShadowsocksRunnerActivity extends AppCompatActivity with ServiceBoundConte
 
   override def onDestroy() {
     super.onDestroy()
-    deattachService()
+    detachService()
     if (receiver != null) {
       unregisterReceiver(receiver)
       receiver = null
@@ -102,7 +101,7 @@ class ShadowsocksRunnerActivity extends AppCompatActivity with ServiceBoundConte
     resultCode match {
       case Activity.RESULT_OK =>
         if (bgService != null) {
-          bgService.start(ConfigUtils.load(ShadowsocksApplication.settings))
+          bgService.use(ConfigUtils.load(ShadowsocksApplication.settings))
         }
       case _ =>
         Log.e(Shadowsocks.TAG, "Failed to start VpnService")

@@ -55,17 +55,12 @@ object Msg {
   val VPN_ERROR = 6
 }
 
-object Path {
-  val BASE = "/data/data/com.github.shadowsocks/"
-}
-
 object Key {
   val profileId = "profileId"
   val profileName = "profileName"
 
   val proxied = "Proxyed"
 
-  val profiles = "profiles"
   val isNAT = "isNAT"
   val route = "route"
   val stat = "stat"
@@ -76,14 +71,16 @@ object Key {
   val isProxyApps = "isProxyApps"
   val isBypassApps = "isBypassApps"
   val isUdpDns = "isUdpDns"
-  val isAuth= "isAuth"
-  val isIpv6= "isIpv6"
+  val isAuth = "isAuth"
+  val isIpv6 = "isIpv6"
 
   val proxy = "proxy"
   val sitekey = "sitekey"
   val encMethod = "encMethod"
   val remotePort = "remotePortNum"
   val localPort = "localPortNum"
+
+  val profileTip = "profileTip"
 }
 
 object Scheme {
@@ -98,7 +95,6 @@ object Mode {
 }
 
 object State {
-  val INIT = 0
   val CONNECTING = 1
   val CONNECTED = 2
   val STOPPING = 3
@@ -109,10 +105,12 @@ object State {
 object Action {
   val SERVICE = "com.github.shadowsocks.SERVICE"
   val CLOSE = "com.github.shadowsocks.CLOSE"
+  val QUICK_SWITCH = "com.github.shadowsocks.QUICK_SWITCH"
 }
 
 object Route {
   val ALL = "all"
   val BYPASS_LAN = "bypass-lan"
   val BYPASS_CHN = "bypass-china"
+  val BYPASS_LAN_CHN = "bypass-lan-china"
 }

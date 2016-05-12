@@ -43,22 +43,9 @@ import android.content.{BroadcastReceiver, Context, Intent}
 import com.github.shadowsocks.utils._
 
 class ShadowsocksReceiver extends BroadcastReceiver {
-
-  val TAG = "Shadowsocks"
-
   def onReceive(context: Context, intent: Intent) {
-    val isAutoConnect: Boolean = ShadowsocksApplication.settings.getBoolean(Key.isAutoConnect, false)
-    val isInstalled: Boolean = ShadowsocksApplication.settings.getBoolean(ShadowsocksApplication.getVersionName, false)
-    if (isAutoConnect && isInstalled) {
-      if (Utils.isLollipopOrAbove) {
-        val intent = new Intent(context, classOf[ShadowsocksRunnerService])
-        context.startService(intent)
-      } else {
-        val intent = new Intent(context, classOf[ShadowsocksRunnerActivity])
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-        context.startActivity(intent)
-      }
+    if (ShadowsocksApplication.settings.getBoolean(Key.isAutoConnect, false)) {
+      Utils.startSsService(context)
     }
   }
 }
