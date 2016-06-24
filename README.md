@@ -6,7 +6,7 @@ A [shadowsocks](http://shadowsocks.org) client for Android, written in Scala.
 
 ### CI STATUS
 
-[![Build Status](https://travis-ci.org/shadowsocks/shadowsocks-android.svg)](https://travis-ci.org/shadowsocks/shadowsocks-android)
+[![Build Status](https://api.travis-ci.org/shadowsocks/shadowsocks-android.svg)](https://travis-ci.org/shadowsocks/shadowsocks-android)
 
 ### PREREQUISITES
 
@@ -19,19 +19,16 @@ A [shadowsocks](http://shadowsocks.org) client for Android, written in Scala.
 
 * Set environment variable `ANDROID_HOME` to `/path/to/android-sdk`
 * Set environment variable `ANDROID_NDK_HOME` to `/path/to/android-ndk`
-* Create your key following the instructions at http://developer.android.com/guide/publishing/app-signing.html#cert
+* Create your key following the instructions at https://developer.android.com/studio/publish/app-signing.html
 * Put your key in ~/.keystore
 * Create `local.properties` from `local.properties.example` with your own key information
 * Invoke the building like this
 
 ```bash
     git submodule update --init
-
-    # Build native binaries
-    ./build.sh
     
     # Build the App
-    sbt clean android:package-release
+    sbt native-build clean android:package-release
 ```
 
 #### BUILD on Mac OS X (with HomeBrew)
@@ -68,7 +65,8 @@ A [shadowsocks](http://shadowsocks.org) client for Android, written in Scala.
 
 ### LICENSE
 
-Copyright (C) 2016 Max Lv <max.c.lv@gmail.com>
+Copyright (C) 2016 by Max Lv <<max.c.lv@gmail.com>> <br/>
+Copyright (C) 2016 by Mygod Studio <<mygodstudio@gmail.com>>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

@@ -53,6 +53,7 @@ import android.support.v7.widget.{DefaultItemAnimator, LinearLayoutManager, Recy
 import android.view._
 import android.widget._
 import com.github.shadowsocks.utils.{Key, Utils}
+import com.github.shadowsocks.ShadowsocksApplication.app
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable
@@ -71,7 +72,7 @@ object AppManager {
       val filter = new IntentFilter(Intent.ACTION_PACKAGE_ADDED)
       filter.addAction(Intent.ACTION_PACKAGE_REMOVED)
       filter.addDataScheme("package")
-      ShadowsocksApplication.instance.registerReceiver((context: Context, intent: Intent) =>
+      app.registerReceiver((context: Context, intent: Intent) =>
         if (intent.getAction != Intent.ACTION_PACKAGE_REMOVED ||
           !intent.getBooleanExtra(Intent.EXTRA_REPLACING, false)) {
           synchronized(cachedApps = null)
@@ -96,13 +97,13 @@ class AppManager extends AppCompatActivity with OnMenuItemClickListener {
   private final class AppViewHolder(val view: View) extends RecyclerView.ViewHolder(view) with View.OnClickListener {
     private val icon = itemView.findViewById(R.id.itemicon).asInstanceOf[ImageView]
     private val check = itemView.findViewById(R.id.itemcheck).asInstanceOf[Switch]
-    private var app: ProxiedApp = _
+    private var item: ProxiedApp = _
     itemView.setOnClickListener(this)
 
-    private def proxied = proxiedApps.contains(app.packageName)
+    private def proxied = proxiedApps.contains(item.packageName)
 
     def bind(app: ProxiedApp) {
-      this.app = app
+      this.item = app
       icon.setImageDrawable(app.icon)
       check.setText(app.name)
       check.setChecked(proxied)
@@ -110,14 +111,14 @@ class AppManager extends AppCompatActivity with OnMenuItemClickListener {
 
     def onClick(v: View) {
       if (proxied) {
-        proxiedApps.remove(app.packageName)
+        proxiedApps.remove(item.packageName)
         check.setChecked(false)
       } else {
-        proxiedApps.add(app.packageName)
+        proxiedApps.add(item.packageName)
         check.setChecked(true)
       }
       if (!appsLoading.get)
-        ShadowsocksApplication.settings.edit.putString(Key.proxied, proxiedApps.mkString("\n")).apply
+        app.editor.putString(Key.proxied, proxiedApps.mkString("\n")).apply
     }
   }
 
@@ -133,12 +134,15 @@ class AppManager extends AppCompatActivity with OnMenuItemClickListener {
       new AppViewHolder(LayoutInflater.from(vg.getContext).inflate(R.layout.layout_apps_item, vg, false))
   }
 
-  private val proxiedApps = ShadowsocksApplication.settings.getString(Key.proxied, "").split('\n').to[mutable.HashSet]
+  private var proxiedApps: mutable.HashSet[String] = _
   private var toolbar: Toolbar = _
   private var appListView: RecyclerView = _
   private var loadingView: View = _
   private val appsLoading = new AtomicBoolean
   private var handler: Handler = null
+
+  private def initProxiedApps(str: String = app.settings.getString(Key.proxied, "")) =
+    proxiedApps = str.split('\n').to[mutable.HashSet]
 
   override def onDestroy() {
     instance = null
@@ -169,14 +173,13 @@ class AppManager extends AppCompatActivity with OnMenuItemClickListener {
               val editor = prefs.edit
               val i = proxiedAppString.indexOf('\n')
               try {
-                if (i < 0)
-                  editor.putBoolean(Key.isBypassApps, proxiedAppString.toBoolean).putString(Key.proxied, "").apply()
-                else editor.putBoolean(Key.isBypassApps, proxiedAppString.substring(0, i).toBoolean)
-                  .putString(Key.proxied, proxiedAppString.substring(i + 1)).apply()
+                val (enabled, apps) = if (i < 0) (proxiedAppString, "")
+                  else (proxiedAppString.substring(0, i), proxiedAppString.substring(i + 1))
+                editor.putBoolean(Key.isBypassApps, enabled.toBoolean).putString(Key.proxied, apps).apply()
                 Toast.makeText(this, R.string.action_import_msg, Toast.LENGTH_SHORT).show()
-                // Restart activity
                 appListView.setVisibility(View.GONE)
                 loadingView.setVisibility(View.VISIBLE)
+                initProxiedApps(apps)
                 reloadApps()
                 return true
               } catch {
@@ -200,7 +203,7 @@ class AppManager extends AppCompatActivity with OnMenuItemClickListener {
     this.setContentView(R.layout.layout_apps)
     toolbar = findViewById(R.id.toolbar).asInstanceOf[Toolbar]
     toolbar.setTitle(R.string.proxied_apps)
-    toolbar.setNavigationIcon(R.drawable.abc_ic_ab_back_mtrl_am_alpha)
+    toolbar.setNavigationIcon(R.drawable.abc_ic_ab_back_material)
     toolbar.setNavigationOnClickListener((v: View) => {
       val intent = getParentActivityIntent
       if (intent == null) finish else navigateUpTo(intent)
@@ -208,18 +211,19 @@ class AppManager extends AppCompatActivity with OnMenuItemClickListener {
     toolbar.inflateMenu(R.menu.app_manager_menu)
     toolbar.setOnMenuItemClickListener(this)
 
-    ShadowsocksApplication.settings.edit().putBoolean(Key.isProxyApps, true).commit()
+    app.editor.putBoolean(Key.isProxyApps, true).apply
     findViewById(R.id.onSwitch).asInstanceOf[Switch]
       .setOnCheckedChangeListener((_, checked) => {
-        ShadowsocksApplication.settings.edit().putBoolean(Key.isProxyApps, checked).commit()
+        app.editor.putBoolean(Key.isProxyApps, checked).apply
         finish()
       })
 
     val bypassSwitch = findViewById(R.id.bypassSwitch).asInstanceOf[Switch]
     bypassSwitch.setOnCheckedChangeListener((_, checked) =>
-      ShadowsocksApplication.settings.edit().putBoolean(Key.isBypassApps, checked).apply())
-    bypassSwitch.setChecked(ShadowsocksApplication.settings.getBoolean(Key.isBypassApps, false))
+      app.editor.putBoolean(Key.isBypassApps, checked).apply())
+    bypassSwitch.setChecked(app.settings.getBoolean(Key.isBypassApps, false))
 
+    initProxiedApps()
     loadingView = findViewById(R.id.loading)
     appListView = findViewById(R.id.applistview).asInstanceOf[RecyclerView]
     appListView.setLayoutManager(new LinearLayoutManager(this))
@@ -232,7 +236,7 @@ class AppManager extends AppCompatActivity with OnMenuItemClickListener {
   def reloadApps() = if (!appsLoading.compareAndSet(true, false)) loadAppsAsync()
   def loadAppsAsync() {
     if (!appsLoading.compareAndSet(false, true)) return
-    ThrowableFuture {
+    Utils.ThrowableFuture {
       var adapter: AppsAdapter = null
       do {
         appsLoading.set(true)

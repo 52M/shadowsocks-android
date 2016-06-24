@@ -12,13 +12,14 @@ import android.webkit.{WebView, WebViewClient}
 import com.github.shadowsocks.database.Profile
 import com.github.shadowsocks.preferences._
 import com.github.shadowsocks.utils.{Key, Utils}
+import com.github.shadowsocks.ShadowsocksApplication.app
 
 object ShadowsocksSettings {
   // Constants
-  val PREFS_NAME = "Shadowsocks"
-  val PROXY_PREFS = Array(Key.profileName, Key.proxy, Key.remotePort, Key.localPort, Key.sitekey, Key.encMethod,
+  private final val TAG = "ShadowsocksSettings"
+  private val PROXY_PREFS = Array(Key.profileName, Key.proxy, Key.remotePort, Key.localPort, Key.sitekey, Key.encMethod,
     Key.isAuth)
-  val FEATURE_PREFS = Array(Key.route, Key.isProxyApps, Key.isUdpDns, Key.isIpv6)
+  private val FEATURE_PREFS = Array(Key.route, Key.isProxyApps, Key.isUdpDns, Key.isIpv6)
 
   // Helper functions
   def updateDropDownPreference(pref: Preference, value: String) {
@@ -80,8 +81,19 @@ class ShadowsocksSettings extends PreferenceFragment with OnSharedPreferenceChan
       false
     })
 
+    val switch = findPreference(Key.isAutoConnect).asInstanceOf[SwitchPreference]
+    switch.setOnPreferenceChangeListener((_, value) => {
+      BootReceiver.setEnabled(activity, value.asInstanceOf[Boolean])
+      true
+    })
+    if (getPreferenceManager.getSharedPreferences.getBoolean(Key.isAutoConnect, false)) {
+      BootReceiver.setEnabled(activity, true)
+      getPreferenceManager.getSharedPreferences.edit.remove(Key.isAutoConnect).apply
+    }
+    switch.setChecked(BootReceiver.getEnabled(activity))
+
     findPreference("recovery").setOnPreferenceClickListener((preference: Preference) => {
-      ShadowsocksApplication.track(Shadowsocks.TAG, "reset")
+      app.track(TAG, "reset")
       activity.recovery()
       true
     })
@@ -89,13 +101,13 @@ class ShadowsocksSettings extends PreferenceFragment with OnSharedPreferenceChan
     val flush = findPreference("flush_dnscache")
     if (Build.VERSION.SDK_INT < 17) flush.setSummary(R.string.flush_dnscache_summary)
     flush.setOnPreferenceClickListener(_ => {
-      ShadowsocksApplication.track(Shadowsocks.TAG, "flush_dnscache")
+      app.track(TAG, "flush_dnscache")
       activity.flushDnsCache()
       true
     })
 
     findPreference("about").setOnPreferenceClickListener((preference: Preference) => {
-      ShadowsocksApplication.track(Shadowsocks.TAG, "about")
+      app.track(TAG, "about")
       val web = new WebView(activity)
       web.loadUrl("file:///android_asset/pages/about.html")
       web.setWebViewClient(new WebViewClient() {
@@ -110,7 +122,7 @@ class ShadowsocksSettings extends PreferenceFragment with OnSharedPreferenceChan
       })
 
       new AlertDialog.Builder(activity)
-        .setTitle(getString(R.string.about_title).formatLocal(Locale.ENGLISH, ShadowsocksApplication.getVersionName))
+        .setTitle(getString(R.string.about_title).formatLocal(Locale.ENGLISH, app.getVersionName))
         .setNegativeButton(getString(android.R.string.ok), null)
         .setView(web)
         .create()
@@ -121,15 +133,15 @@ class ShadowsocksSettings extends PreferenceFragment with OnSharedPreferenceChan
 
   override def onResume {
     super.onResume()
-    isProxyApps.setChecked(ShadowsocksApplication.settings.getBoolean(Key.isProxyApps, false))  // update
+    isProxyApps.setChecked(app.settings.getBoolean(Key.isProxyApps, false))  // update
   }
 
   override def onDestroy {
     super.onDestroy()
-    ShadowsocksApplication.settings.unregisterOnSharedPreferenceChangeListener(this)
+    app.settings.unregisterOnSharedPreferenceChangeListener(this)
   }
 
-  def onSharedPreferenceChanged(sharedPreferences: SharedPreferences, key: String) = key match {
+  def onSharedPreferenceChanged(pref: SharedPreferences, key: String) = key match {
     case Key.isNAT =>
       activity.handler.post(() => {
         activity.detachService
@@ -144,7 +156,7 @@ class ShadowsocksSettings extends PreferenceFragment with OnSharedPreferenceChan
     for (name <- Key.isNAT #:: PROXY_PREFS.toStream #::: FEATURE_PREFS.toStream) {
       val pref = findPreference(name)
       if (pref != null) pref.setEnabled(enabled &&
-        (name != Key.isProxyApps || Utils.isLollipopOrAbove || !ShadowsocksApplication.isVpnEnabled))
+        (name != Key.isProxyApps || Utils.isLollipopOrAbove || app.isNatEnabled))
     }
   }
 

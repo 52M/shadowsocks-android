@@ -49,6 +49,7 @@ import android.util.Log
 import android.widget.Toast
 import com.github.shadowsocks.aidl.{Config, IShadowsocksService, IShadowsocksServiceCallback}
 import com.github.shadowsocks.utils._
+import com.github.shadowsocks.ShadowsocksApplication.app
 
 trait BaseService extends Service {
 
@@ -60,7 +61,7 @@ trait BaseService extends Service {
 
   final val callbacks = new RemoteCallbackList[IShadowsocksServiceCallback]
   var callbacksCount: Int = _
-  lazy val handler = new Handler(getContext.getMainLooper)
+  lazy val handler = new Handler(getMainLooper)
 
   private val closeReceiver: BroadcastReceiver = (context: Context, intent: Intent) => {
     Toast.makeText(context, R.string.stopping, Toast.LENGTH_SHORT).show()
@@ -69,10 +70,6 @@ trait BaseService extends Service {
   var closeReceiverRegistered: Boolean = _
 
   val binder = new IShadowsocksService.Stub {
-    override def getMode: Int = {
-      getServiceMode
-    }
-
     override def getState: Int = {
       state
     }
@@ -125,7 +122,7 @@ trait BaseService extends Service {
   def startRunner(config: Config) {
     this.config = config
 
-    startService(new Intent(getContext, getClass))
+    startService(new Intent(this, getClass))
     TrafficMonitor.reset()
     trafficMonitorThread = new TrafficMonitorThread(getApplicationContext)
     trafficMonitorThread.start()
@@ -166,25 +163,18 @@ trait BaseService extends Service {
   def updateTrafficTotal(tx: Long, rx: Long) {
     val config = this.config  // avoid race conditions without locking
     if (config != null) {
-      ShadowsocksApplication.profileManager.getProfile(config.profileId) match {
+      app.profileManager.getProfile(config.profileId) match {
         case Some(profile) =>
           profile.tx += tx
           profile.rx += rx
-          ShadowsocksApplication.profileManager.updateProfile(profile)
+          app.profileManager.updateProfile(profile)
         case None => // Ignore
       }
     }
   }
 
-  def getServiceMode: Int
-  def getTag: String
-  def getContext: Context
-
   def getState: Int = {
     state
-  }
-  def changeState(s: Int) {
-    changeState(s, null)
   }
 
   def updateTrafficRate() {
@@ -210,8 +200,8 @@ trait BaseService extends Service {
   // Service of shadowsocks should always be started explicitly
   override def onStartCommand(intent: Intent, flags: Int, startId: Int): Int = Service.START_NOT_STICKY
 
-  protected def changeState(s: Int, msg: String) {
-    val handler = new Handler(getContext.getMainLooper)
+  protected def changeState(s: Int, msg: String = null) {
+    val handler = new Handler(getMainLooper)
     handler.post(() => if (state != s) {
       if (callbacksCount > 0) {
         val n = callbacks.beginBroadcast()

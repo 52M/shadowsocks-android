@@ -45,13 +45,12 @@ import java.util.Locale
 
 import android.content._
 import android.content.pm.PackageManager.NameNotFoundException
-import android.content.pm.{PackageInfo, PackageManager}
 import android.net.VpnService
 import android.os._
 import android.util.Log
 import com.github.shadowsocks.aidl.Config
 import com.github.shadowsocks.utils._
-import org.apache.commons.net.util.SubnetUtils
+import com.github.shadowsocks.ShadowsocksApplication.app
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -68,27 +67,6 @@ class ShadowsocksVpnService extends VpnService with BaseService {
   var sstunnelProcess: Process = _
   var pdnsdProcess: Process = _
   var tun2socksProcess: Process = _
-
-  def isByass(net: SubnetUtils): Boolean = {
-    val info = net.getInfo
-    info.isInRange(config.proxy)
-  }
-
-  def isPrivateA(a: Int): Boolean = {
-    if (a == 10 || a == 192 || a == 172) {
-      true
-    } else {
-      false
-    }
-  }
-
-  def isPrivateB(a: Int, b: Int): Boolean = {
-    if (a == 10 || (a == 192 && b == 168) || (a == 172 && b >= 16 && b < 32)) {
-      true
-    } else {
-      false
-    }
-  }
 
   override def onBind(intent: Intent): IBinder = {
     val action = intent.getAction
@@ -121,7 +99,7 @@ class ShadowsocksVpnService extends VpnService with BaseService {
     // channge the state
     changeState(State.STOPPING)
 
-    ShadowsocksApplication.track(TAG, "stop")
+    app.track(TAG, "stop")
 
     // reset VPN
     killProcesses()
@@ -133,18 +111,6 @@ class ShadowsocksVpnService extends VpnService with BaseService {
     }
 
     super.stopRunner(stopService)
-  }
-
-  def getVersionName: String = {
-    var version: String = null
-    try {
-      val pi: PackageInfo = getPackageManager.getPackageInfo(getPackageName, 0)
-      version = pi.versionName
-    } catch {
-      case e: PackageManager.NameNotFoundException =>
-        version = "Package name not found"
-    }
-    version
   }
 
   def killProcesses() {
@@ -181,13 +147,13 @@ class ShadowsocksVpnService extends VpnService with BaseService {
       return
     }
 
-    ShadowsocksApplication.track(TAG, "start")
+    app.track(TAG, "start")
 
     changeState(State.CONNECTING)
 
-    ThrowableFuture {
+    Utils.ThrowableFuture {
       if (config.proxy == "198.199.101.152") {
-        val holder = ShadowsocksApplication.containerHolder
+        val holder = app.containerHolder
         try {
           this.config = ConfigUtils.getPublicConfig(getBaseContext, holder.getContainer, config)
         } catch {
@@ -311,8 +277,8 @@ class ShadowsocksVpnService extends VpnService with BaseService {
     val ipv6 = if (config.isIpv6) "" else "reject = ::/0;"
     val conf = {
       if (config.route == Route.BYPASS_CHN || config.route == Route.BYPASS_LAN_CHN) {
-        val reject = ConfigUtils.getRejectList(getContext)
-        val blackList = ConfigUtils.getBlackList(getContext)
+        val reject = ConfigUtils.getRejectList(this)
+        val blackList = ConfigUtils.getBlackList(this)
         ConfigUtils.PDNSD_DIRECT.formatLocal(Locale.ENGLISH, getApplicationInfo.dataDir,
           "0.0.0.0", 8153, reject, blackList, 8163, ipv6)
       } else {
@@ -329,8 +295,6 @@ class ShadowsocksVpnService extends VpnService with BaseService {
 
     pdnsdProcess = new GuardedProcess(cmd.split(" ").toSeq).start()
   }
-
-  override def getContext = getBaseContext
 
   def startVpn(): Int = {
 
@@ -435,8 +399,4 @@ class ShadowsocksVpnService extends VpnService with BaseService {
     }
     false
   }
-
-  override def getTag = TAG
-
-  override def getServiceMode = Mode.VPN
 }
