@@ -12,61 +12,56 @@ A [shadowsocks](http://shadowsocks.org) client for Android, written in Scala.
 
 * JDK 1.8
 * SBT 0.13.0+
-* Android SDK r25+
-* Android NDK r10d+
+* Go 1.4+
+* Android SDK
+  - Build Tools 25+
+  - Android Support Repository and Google Repository (see `build.sbt` for version)
+  - Android NDK r14+
 
 ### BUILD
 
 * Set environment variable `ANDROID_HOME` to `/path/to/android-sdk`
-* Set environment variable `ANDROID_NDK_HOME` to `/path/to/android-ndk`
+* (optional) Set environment variable `ANDROID_NDK_HOME` to `/path/to/android-ndk` (default: `$ANDROID_HOME/ndk-bundle`)
+* Set environment variable `GOROOT_BOOTSTRAP` to `/path/to/go`
 * Create your key following the instructions at https://developer.android.com/studio/publish/app-signing.html
-* Put your key in ~/.keystore
-* Create `local.properties` from `local.properties.example` with your own key information
+* Create `mobile/local.properties` from `mobile/local.properties.example` with your own key information
 * Invoke the building like this
 
 ```bash
-    git submodule update --init
-    
+    git submodule update --init --recursive
+
     # Build the App
-    sbt native-build clean android:package-release
+    sbt clean go-build android:package-release
 ```
 
-#### BUILD on Mac OS X (with HomeBrew)
+### TRANSLATE
 
-* Install Android SDK and NDK by run `brew install android-ndk android-sdk`
-* Add `export ANDROID_HOME=/usr/local/Cellar/android-sdk/$version` to your .bashrc , then reopen the shell to load it.
-* Add `export ANDROID_NDK_HOME=/usr/local/Cellar/android-ndk/$version` to your .bashrc , then reopen the shell to load it.
-* echo "y" | android update sdk --filter tools,platform-tools,build-tools-23.0.2,android-23,extra-google-m2repository --no-ui -a
-* echo "y" | android update sdk --filter extra-android-m2repository --no-ui --no-https -a
-* Create your key following the instructions at http://developer.android.com/guide/publishing/app-signing.html#cert
-* Put your key in ~/.keystore
-* Create `local.properties` from `local.properties.example` with your own key information .
-* Invoke the building like this
+Translators can go to [POEditor](https://poeditor.com/join/project/u5VHO9vhSf) to help translate shadowsocks-android. Guidelines:
 
-```bash
-    git submodule update --init
-
-    # Build native binaries
-    ./build.sh
-
-    # Build the apk
-    sbt clean android:package-release
-```
+* It's okay to leave some strings untranslated if you think it should use the same string as English (US).
+* `faq_url` should not be changed. If you'd like to translate FAQ, submit a pull request with the translated [`faq.md`](https://github.com/shadowsocks/shadowsocks-android/blob/master/.github/faq.md) (it should be named properly, e.g. `.github/faq.zh-CN.md`). Administrators will take care of the rest.
+* Do not add/edit/remove comments.
 
 ## OPEN SOURCE LICENSES
 
-* shadowsocks-libev: [GPLv3](https://github.com/shadowsocks/shadowsocks-libev/blob/master/LICENSE)
-* tun2socks: [BSD](https://github.com/shadowsocks/badvpn/blob/shadowsocks-android/COPYING)
-* redsocks: [APL 2.0](https://github.com/shadowsocks/redsocks/blob/master/README)
-* OpenSSL: [OpenSSL](https://github.com/shadowsocks/openssl-android/blob/master/NOTICE)
-* pdnsd: [GPLv3](https://github.com/shadowsocks/shadowsocks-android/blob/master/src/main/jni/pdnsd/COPYING)
-* libev: [GPLv2](https://github.com/shadowsocks/shadowsocks-android/blob/master/src/main/jni/libev/LICENSE)
-* libevent: [BSD](https://github.com/shadowsocks/libevent/blob/master/LICENSE)
+<ul>
+    <li>redsocks: <a href="https://github.com/shadowsocks/redsocks/blob/shadowsocks-android/README">APL 2.0</a></li>
+    <li>mbed TLS: <a href="https://github.com/ARMmbed/mbedtls/blob/development/LICENSE">APL 2.0</a></li>
+    <li>libevent: <a href="https://github.com/shadowsocks/libevent/blob/master/LICENSE">BSD</a></li>
+    <li>tun2socks: <a href="https://github.com/shadowsocks/badvpn/blob/shadowsocks-android/COPYING">BSD</a></li>
+    <li>pcre: <a href="https://android.googlesource.com/platform/external/pcre/+/master/dist2/LICENCE">BSD</a></li>
+    <li>libancillary: <a href="https://github.com/shadowsocks/libancillary/blob/shadowsocks-android/COPYING">BSD</a></li>
+    <li>shadowsocks-libev: <a href="https://github.com/shadowsocks/shadowsocks-libev/blob/master/LICENSE">GPLv3</a></li>
+    <li>overture: <a href="https://github.com/shawn1m/overture/blob/master/LICENSE">MIT</a></li>
+    <li>libev: <a href="https://github.com/shadowsocks/libev/blob/master/LICENSE">GPLv2</a></li>
+    <li>libsodium: <a href="https://github.com/jedisct1/libsodium/blob/master/LICENSE">ISC</a></li>
+    <li>libudns: <a href="https://github.com/shadowsocks/libudns/blob/master/COPYING.LGPL">LGPL</a></li>
+</ul>
 
 ### LICENSE
 
-Copyright (C) 2016 by Max Lv <<max.c.lv@gmail.com>> <br/>
-Copyright (C) 2016 by Mygod Studio <<mygodstudio@gmail.com>>
+Copyright (C) 2017 by Max Lv <<max.c.lv@gmail.com>>  
+Copyright (C) 2017 by Mygod Studio <<contact-shadowsocks-android@mygod.be>>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
